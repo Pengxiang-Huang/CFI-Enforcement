@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Set the path to your custom-built LLVM binaries
+LLVM_PATH="/home/penn/Desktop/CFI/mlta/llvm-project/build/bin"
+
+# Add LLVM_PATH to the current shell's PATH
+export PATH="$LLVM_PATH:$PATH"
+
+# Optionally print confirmation
+echo "LLVM binaries added to PATH: $LLVM_PATH"
+
