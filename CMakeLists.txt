@@ -15,7 +15,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -Wall")
 
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 
-
 # Link with LLVM
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
@@ -25,12 +24,9 @@ add_definitions(
 )
 link_directories(${LLVM_LIBRARY_DIRS})
 
-
 # Prepare the pass to be included in the source tree
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(AddLLVM)
 
 # Pass
 add_subdirectory(src)
-
-

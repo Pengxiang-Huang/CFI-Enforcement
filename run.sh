@@ -12,5 +12,6 @@ rm -rf build/ ;
 # Build
 mkdir build ; 
 cd build ; 
-${CMAKE} -DCMAKE_INSTALL_PREFIX="~/CAT" -DCMAKE_BUILD_TYPE=Debug ../ ; 
+${CMAKE}  -DCMAKE_INSTALL_PREFIX="~/CFIENFORECE"  -DCMAKE_BUILD_TYPE=Debug ../ ; 
 make 
+cd ../
