@@ -1,5 +1,5 @@
+#include "llvm/IR/Module.h"
 #include "llvm/Pass.h"
-#include "llvm/IR/Function.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
@@ -7,37 +7,31 @@
 using namespace llvm;
 
 namespace {
-  struct CFIEnforce : public FunctionPass {
-    static char ID; 
+    struct CFIEnforcement : public ModulePass {
+        static char ID;
+        CFIEnforcement() : ModulePass(ID) {}
 
-    CFIEnforce() : FunctionPass(ID) {}
-
-    bool doInitialization (Module &M) override {
-      errs() << "Hello LLVM World at \"doInitialization\"\n" ;
-      return false;
-    }
-
-    bool runOnFunction (Function &F) override {
-      errs() << "Hello LLVM World at \"runOnFunction\"\n" ;
-      return false;
-    }
-
-    void getAnalysisUsage(AnalysisUsage &AU) const override {
-      errs() << "Hello LLVM World at \"getAnalysisUsage\"\n" ;
-      AU.setPreservesAll();
-    }
-  };
+        bool runOnModule(Module &M) override {
+            errs() << "Running on module: " << M.getName() << "\n";
+            for (Function &F : M) {
+                errs() << "Function: " << F.getName() << "\n";
+            }
+            return false;  // If no modification to the module is made, return false
+        }
+    };
 }
 
-// Next there is code to register your pass to "opt"
-char CFIEnforce::ID = 0;
-static RegisterPass<CFIEnforce> X("CFIEnforce", "CFIEnforcement");
+char CFIEnforcement::ID = 0;
+static RegisterPass<CFIEnforcement> X("CFIEnforcement", "CFI Enforcement Pass", false, false);
 
-// Next there is code to register your pass to "clang"
-static CFIEnforce * _PassMaker = NULL;
-static RegisterStandardPasses _RegPass1(PassManagerBuilder::EP_OptimizerLast,
-    [](const PassManagerBuilder&, legacy::PassManagerBase& PM) {
-        if(!_PassMaker){ PM.add(_PassMaker = new CFIEnforce());}}); // ** for -Ox
-static RegisterStandardPasses _RegPass2(PassManagerBuilder::EP_EnabledOnOptLevel0,
-    [](const PassManagerBuilder&, legacy::PassManagerBase& PM) {
-        if(!_PassMaker){ PM.add(_PassMaker = new CFIEnforce()); }}); // ** for -O0
+// Automatically register the pass for -O3 and other optimization levels
+static void registerCFIEnforcePass(const PassManagerBuilder &, legacy::PassManagerBase &PM) {
+    PM.add(new CFIEnforcement());
+}
+
+// Register for different optimization levels
+static RegisterStandardPasses RegisterCFIEnforcePass(
+    PassManagerBuilder::EP_ModuleOptimizerEarly, registerCFIEnforcePass);
+static RegisterStandardPasses RegisterCFIEnforcePass0(
+    PassManagerBuilder::EP_EnabledOnOptLevel0, registerCFIEnforcePass);
+

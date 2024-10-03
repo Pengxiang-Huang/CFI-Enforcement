@@ -3,3 +3,7 @@
 /llvm-project
 
 /.cache
+
+
+*.ll 
+*.bc

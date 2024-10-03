@@ -1,22 +1,29 @@
 SRC = test
 
-CC  = clang 
+CC  = clang
+CXX = clang++
 
 CFLAGS = -O2 -emit-llvm
 
-all: $(SRC).bc $(SRC).ll $(SRC).out
+# New output file for the optimized bitcode
+OPT_BC = $(SRC)_optimized.bc
 
+all: $(SRC).bc $(SRC).ll $(SRC).out $(OPT_BC)
 
-$(SRC).bc: $(SRC).c 
+$(SRC).bc: $(SRC).c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(SRC).ll: $(SRC).bc
 	llvm-dis $< -o $@
 
-$(SRC).out: $(SRC).c 
-	$(CC) $(SRC).c -o $(SRC).out 
+$(SRC).out: $(SRC).bc $(OPT_BC)
+	$(CXX) $(SRC).c -o $(SRC).out
 
-clean: 
-	rm -f $(SRC).bc $(SRC).ll $(SRC).out 
+$(OPT_BC): $(SRC).bc
+	opt -load ../../build/src/libCFIEnforcement.so --CFIEnforcement $< -o $@
 
-.PHONY: clean 
+clean:
+	rm -f $(SRC).bc $(SRC).ll $(SRC).out $(OPT_BC)
+
+.PHONY: clean
+
