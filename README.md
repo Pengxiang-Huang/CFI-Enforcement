@@ -1,2 +1,8 @@
 # CFI
-CFI project code
+CFI Enforecement project
+
+## Running Guide
+run the script: 
+```
+./run.sh
+```
