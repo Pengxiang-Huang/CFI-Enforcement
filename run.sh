@@ -12,6 +12,8 @@ rm -rf build/ ;
 # Build
 mkdir build ; 
 cd build ; 
-${CMAKE}  -DCMAKE_BUILD_TYPE=Debug ../ ; 
+${CMAKE} -DCMAKE_BUILD_TYPE=Debug ../ ; 
 make 
 cd ../
+
+

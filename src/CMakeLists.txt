@@ -15,22 +15,13 @@ include_directories(${LLVM_INCLUDE_DIRS})
 
 set_source_files_properties(${CFIEnforceSrc} PROPERTIES COMPILE_FLAGS "-std=c++20")
 
-set(NO_RTTI "-fno-rtti")
-add_definitions(${NO_RTTI})
+list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+include(HandleLLVMOptions)
+include(AddLLVM)
 
-# Declare the shared library without distribution-specific checks
-add_library(${CFIEnforceName} MODULE ${CFIEnforceSrc})
+message(STATUS "LLVM_DIR IS ${LLVM_CMAKE_DIR}.")
 
-target_link_libraries(${CFIEnforceName}
-  PRIVATE
-  LLVMCore
-  LLVMSupport
-  LLVMipo
-  LLVMIRReader 
-)
+include_directories(${LLVM_INCLUDE_DIRS})
 
-# Export the pass as a loadable module for 'opt'
-llvm_map_components_to_libnames(LLVM_LIBS core support ipo irreader)
-
-# Install the shared library
-install(TARGETS ${CFIEnforceName} LIBRARY DESTINATION lib)
+# Declare the LLVM pass to compile
+add_llvm_library(${CFIEnforceName} MODULE ${CFIEnforceSrc})

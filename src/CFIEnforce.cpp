@@ -1,32 +1,37 @@
 #include "llvm/IR/Module.h"
 #include "llvm/Pass.h"
-#include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
+
+#include "llvm/Pass.h"
 
 using namespace llvm;
 
 namespace {
-    struct CFIEnforcement : public ModulePass {
-        static char ID;
-        CFIEnforcement() : ModulePass(ID) {}
+  struct CFIEnforcementPass : public ModulePass {
+    static char ID;
+    CFIEnforcementPass() : ModulePass(ID) {}
 
-        bool runOnModule(Module &M) override {
-            errs() << "Running on module: " << M.getName() << "\n";
-            for (Function &F : M) {
-                errs() << "Function: " << F.getName() << "\n";
-            }
-            return false;  // If no modification to the module is made, return false
-        }
-    };
+		bool doInitialization(Module &M) override {
+			errs() << "do initialization!\n";
+			return false;
+		}
+
+    bool runOnModule(Module &M) override {
+			errs() << "run on module pass!\n";
+      return false;
+    }
+  };
 }
 
-char CFIEnforcement::ID = 0;
-static RegisterPass<CFIEnforcement> X("CFIEnforcement", "CFI Enforcement Pass", false, false);
+char CFIEnforcementPass::ID = 0;
+
+// Register the pass with a name and description
+static RegisterPass<CFIEnforcementPass> X("CFIEnforcement", "CFI Enforcement Pass", false, false);
 
 // Automatically register the pass for -O3 and other optimization levels
 static void registerCFIEnforcePass(const PassManagerBuilder &, legacy::PassManagerBase &PM) {
-    PM.add(new CFIEnforcement());
+    PM.add(new CFIEnforcementPass());
 }
 
 // Register for different optimization levels

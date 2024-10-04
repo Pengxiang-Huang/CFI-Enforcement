@@ -17,10 +17,11 @@ $(SRC).ll: $(SRC).bc
 	llvm-dis $< -o $@
 
 $(SRC).out: $(SRC).bc $(OPT_BC)
-	$(CXX) $(SRC).c -o $(SRC).out
+	$(CC) $(OPT_BC) -o $(SRC).out
 
 $(OPT_BC): $(SRC).bc
-	opt -load ../../build/src/libCFIEnforcement.so --CFIEnforcement $< -o $@
+	opt -load ../../build/CFIEnforcement.so -enable-new-pm=0 --CFIEnforcement $< -o $@
+
 
 clean:
 	rm -f $(SRC).bc $(SRC).ll $(SRC).out $(OPT_BC)
