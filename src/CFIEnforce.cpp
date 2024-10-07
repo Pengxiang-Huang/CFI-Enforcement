@@ -27,9 +27,11 @@ namespace {
 char CFIEnforcementPass::ID = 0;
 
 // Register the pass with a name and description
+// its a transforamtion pass 
 static RegisterPass<CFIEnforcementPass> X("CFIEnforcement", "CFI Enforcement Pass", false, false);
 
 // Automatically register the pass for -O3 and other optimization levels
+// use old legacy pm
 static void registerCFIEnforcePass(const PassManagerBuilder &, legacy::PassManagerBase &PM) {
     PM.add(new CFIEnforcementPass());
 }
