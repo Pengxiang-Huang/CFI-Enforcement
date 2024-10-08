@@ -1,0 +1,2 @@
+test2  is a multifile test case. It shows that TyPM and dataflow analysis would help with better analysis result. See operation.c for more detail
+We assume we use simple dataflow analysis and TyPM along with bitcast analysis. The proposed results and the analysis details can be found in operations.c.

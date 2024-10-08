@@ -71,7 +71,3 @@ function2b
 */
 
 
-
-//makefile
-
-//data flow and bitcast analysis 
