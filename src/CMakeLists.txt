@@ -21,7 +21,7 @@ target_link_libraries(cfi-analyzer
 		LLVMOption
 		LLVMSupport
 		LLVMCore
-    LLVMAnalysis
-    LLVMAsmParser
-    LLVMIRReader
+		LLVMAnalysis
+		LLVMAsmParser
+		LLVMIRReader
 )
