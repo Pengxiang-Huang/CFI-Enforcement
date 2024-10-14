@@ -1,25 +1,27 @@
-# Sources
-file(GLOB CFIEnforceSrc "*.cpp")
+# Set the source files
+set (AnalyzerSourceCodes
+    Config.h
+    Config.cpp
+    Utils.h
+    Utils.cpp
+    main.cpp
+)
 
-# Name of the LLVM pass
-set(CFIEnforceName "CFIEnforcement")
+# Build object library
+add_library(AnalyzerObj OBJECT ${AnalyzerSourceCodes})
 
-# Configure LLVM
-find_package(LLVM REQUIRED CONFIG)
+# Build executable (cfi-analyzer) from object files
+add_executable(cfi-analyzer $<TARGET_OBJECTS:AnalyzerObj>)
 
-# Output directories
-set(LLVM_RUNTIME_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/)
-set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/)
+# Link the required LLVM libraries to cfi-analyzer
+llvm_map_components_to_libnames(LLVM_LIBS support core irreader option)
 
-include_directories(${LLVM_INCLUDE_DIRS})
-message(STATUS "LLVM_DIR IS ${LLVM_CMAKE_DIR}.")
-
-set_source_files_properties(${CFIEnforceSrc} PROPERTIES COMPILE_FLAGS "-std=c++20")
-
-list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
-include(HandleLLVMOptions)
-include(AddLLVM)
-
-
-# Declare the LLVM pass to compile
-add_llvm_library(${CFIEnforceName} MODULE ${CFIEnforceSrc})
+target_link_libraries(cfi-analyzer
+    ${LLVM_LIBS}
+		LLVMOption
+		LLVMSupport
+		LLVMCore
+    LLVMAnalysis
+    LLVMAsmParser
+    LLVMIRReader
+)
