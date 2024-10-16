@@ -5,6 +5,8 @@ set (AnalyzerSourceCodes
     Utils.h
     Utils.cpp
     main.cpp
+		Analyzer.h
+		Analyzer.cpp
 )
 
 # Build object library
