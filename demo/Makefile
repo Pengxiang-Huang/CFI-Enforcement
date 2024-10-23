@@ -1,18 +1,19 @@
 SRC = dispatch
 CC = clang
-CFALG = -O2 -emit-llvm
+# requires LLVMgold.so, enables link time optimization 
+CFALG = -flto -fvisibility=hidden -fsanitize=cfi-icall
 
 all: $(SRC).bc $(SRC).ll $(SRC).out
 
 $(SRC).bc: $(SRC).c
-	$(CC) $(CFALG) -c -o $@ $<
+	$(CC) $(CFALG) -emit-llvm -c -o $@ $<
 
 $(SRC).ll: $(SRC).bc
 	llvm-dis $< -o $@ 
 
 $(SRC).out: $(SRC).c 
-	$(CC) $(SRC).c -o $(SRC).out 
+	$(CC) $< $(CFALG) -o $@ 
 
 clean:
-	rm -f $(SRC).out $(SRC).bc $(SRC).ll
+	rm -f $(SRC).out $(SRC).bc $(SRC).ll*
 
