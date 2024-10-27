@@ -4,6 +4,9 @@ CFALG = -flto=full -fvisibility=hidden -fsanitize=cfi-icall
 
 all: $(SRC).bc $(SRC).ll $(SRC).out
 
+without_cfi: CFALG =
+without_cfi: $(SRC).bc $(SRC).ll $(SRC).out
+
 $(SRC).bc: $(SRC).c
 	$(CC) $(CFALG) -emit-llvm -c -o $@ $<
 

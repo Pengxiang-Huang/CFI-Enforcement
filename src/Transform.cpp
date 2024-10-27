@@ -16,6 +16,7 @@ void Optmizer::applyFunctionTransformation(Function *f,
       if (auto *CI = llvm::dyn_cast<llvm::CallInst>(&i)) {
         if (CI->getCalledFunction() &&
             CI->getCalledFunction()->getName() == "llvm.type.test") {
+
           auto *testedPtr = CI->getArgOperand(0);
           errs() << "Found a testing function pointer: " << *testedPtr << "\n";
           if (auto *MetaOp = dyn_cast<MetadataAsValue>(CI->getOperand(1))) {
@@ -23,30 +24,52 @@ void Optmizer::applyFunctionTransformation(Function *f,
               llvm::outs() << "Found metadata: " << MD->getString() << "\n";
             }
           }
-          // auto type = testedPtr->getType();
-          // auto typeName = type->getPointerElementType()->getStructName();
-          // auto newTyMd = MDString::get(CI->getContext(), typeName);
-          // IRBuilder<> builder(CI->getNextNode());
-          // // Create the second llvm.type.test call with the new metadata
-          //         MetadataAsValue *newTypeMeta =
-          //         MetadataAsValue::get(CI->getContext(), newTyMd); Value
-          //         *secondTypeTest =
-          //         builder.CreateCall(CI->getCalledFunction(), {testedPtr,
-          //         newTypeMeta});
-          //
-          //         // OR the results of the two type tests
-          //         Value *orResult = builder.CreateOr(CI, secondTypeTest,
-          //         "match_any");
-          // // Update the branch instruction to use the OR result
-          //         for (auto *user : CI->users()) {
-          //             if (auto *brInst = dyn_cast<BranchInst>(user)) {
-          //                 // If the branch instruction is conditional
-          //                 if (brInst->isConditional()) {
-          //                     brInst->setCondition(orResult);
-          //                 }
-          //             }
-          //         }
-          // errs() << "Inserted the second type test and update the branch\n";
+
+          /*
+           * output all callees
+           */
+          auto funcset = analyzer->getPossibleCalleesInModule();
+
+          for (auto f : funcset) {
+            errs() << "output f name: " << f->getName() << "\n";
+            SmallVector<std::pair<unsigned, MDNode *>, 4> MDs;
+            (*f).getAllMetadata(MDs);
+            // Print all metadata
+            for (const auto &MD : MDs) {
+              unsigned KindID = MD.first;
+              MDNode *MDNode = MD.second;
+
+              errs() << "  Metadata kind ID: " << KindID << "\n";
+
+              // Print each operand in the metadata node
+              if (MDNode) {
+                for (unsigned i = 0; i < MDNode->getNumOperands(); ++i) {
+                  Metadata *Op = MDNode->getOperand(i);
+                  if (auto *Str = dyn_cast<MDString>(Op)) {
+                    errs() << "    Operand " << i << ": " << Str->getString()
+                           << "\n";
+                  } else if (auto *IntVal = dyn_cast<ConstantAsMetadata>(Op)) {
+                    // Handle integer values
+                    if (auto *ConstInt =
+                            dyn_cast<ConstantInt>(IntVal->getValue())) {
+                      errs() << "    Operand " << i << ": "
+                             << ConstInt->getZExtValue() << "\n";
+                    }
+                  } else {
+                    errs() << "    Operand " << i
+                           << ": (non-string, non-integer type)\n";
+                  }
+                }
+              } else {
+                errs() << "  No metadata available.\n";
+              }
+            }
+            /*
+             * TODO
+             * tranformation
+             * create call and or instructions
+             */
+          }
         }
       }
     }

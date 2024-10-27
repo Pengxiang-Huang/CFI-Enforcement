@@ -14,6 +14,7 @@ class IcallAnalyzer{
 		IcallAnalyzer() = default;
 		void constructIcallMap(std::vector<std::shared_ptr<Module>> modules); 
 		std::set<Function*> & getPossibleCallees(CallInst* inst);
+		std::set<Function*> & getPossibleCalleesInModule();
 		void dumpIcallMap();
 	private:
 		std::map<CallInst*, std::set<Function*> > ICallMap ;

@@ -43,6 +43,13 @@ std::set<Function *> &IcallAnalyzer::getPossibleCallees(CallInst *inst) {
   return ICallMap[inst];
 }
 
+std::set<Function *> &IcallAnalyzer::getPossibleCalleesInModule() {
+  /*
+   * for now just return the first set as all the set are the same in this map
+   */
+  return ICallMap.begin()->second;
+}
+
 void IcallAnalyzer::dumpIcallMap() {
   errs() << "dumping Icall Map: \n";
   errs() << "---------------------------\n";
