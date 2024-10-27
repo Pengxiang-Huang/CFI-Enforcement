@@ -35,8 +35,8 @@ void NestFunc0(fptr_t2 fptr2, double x, double y)
     fptr2(x, y); // Using TyPM, we can know that all the callsites here cannot call function in irrelevant.h
                           // But still may call add, subtract, multiply, divide
                           // Proposed analysis results: 
-                         // bitcast analyzer: add,substraction, multiply, divide, int_count_ducks
-                         // TyPM and bitcast analyzer: add,substraction, multiply, divide
+                         // bitcast analyzer: add,subtraction, multiply, divide, int_count_ducks
+                         // TyPM and bitcast analyzer: add,subtraction, multiply, divide
                          // dataflow analysis: add
 };
 void NestFunc1(fptr_t1 fptr, int x, int y)

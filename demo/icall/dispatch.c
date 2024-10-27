@@ -10,12 +10,12 @@ struct Shape{
 
 
 // define two different functions 
-void draw_circle(void * myint) {
+void draw_circle(int* myint) {
 	int * castint = (int*)myint;
 	printf("draw circle print int is: %d\n", *castint);
 }
 
-void draw_rectangle(void * myint){
+void draw_rectangle(char* myint){
 	int * castint = (int*)myint;
 	printf("draw rectangle print int is: %d\n", *castint);
 }
