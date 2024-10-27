@@ -1,7 +1,6 @@
 SRC = dispatch
 CC = clang
-# requires LLVMgold.so, enables link time optimization 
-CFALG = -flto=full -fvisibility=hidden -fsanitize=cfi-icall -fuse-ld=lld
+CFALG = -flto=full -fvisibility=hidden -fsanitize=cfi-icall
 
 all: $(SRC).bc $(SRC).ll $(SRC).out
 
@@ -11,8 +10,8 @@ $(SRC).bc: $(SRC).c
 $(SRC).ll: $(SRC).bc
 	llvm-dis $< -o $@ 
 
-$(SRC).out: $(SRC).c 
-	$(CC) $< $(CFALG) -o $@ 
+$(SRC).out: $(SRC).bc 
+	$(CC) $< -flto=full -fuse-ld=lld -o $@ 
 
 clean:
 	rm -f $(SRC).out $(SRC).bc $(SRC).ll*

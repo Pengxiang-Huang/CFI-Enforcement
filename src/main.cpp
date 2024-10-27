@@ -13,7 +13,7 @@
 #include "llvm/Support/ToolOutputFile.h"
 #include <memory>
 
-#include "Analyzer.h"
+#include "Transform.h"
 #include "Utils.h"
 
 using namespace llvm;
@@ -57,8 +57,25 @@ int main(int argc, char **argv) {
     modules.push_back(std::move(M));
   }
 
-  auto analyzer = IcallAnalyzer();
-  analyzer.constructIcallMap(modules);
-  analyzer.dumpIcallMap();
+  auto analyzer = new IcallAnalyzer();
+  analyzer->constructIcallMap(modules);
+  analyzer->dumpIcallMap();
+
+  auto optimizer = new Optmizer();
+
+  for (auto &m : modules) {
+    for (auto &f : *m) {
+      /*
+       * check if function has body
+       */
+      if (f.isDeclaration()) {
+        continue;
+      }
+      optimizer->applyFunctionTransformation(&f, analyzer);
+    }
+  }
+
+  delete analyzer;
+  delete optimizer;
   return 0;
 }

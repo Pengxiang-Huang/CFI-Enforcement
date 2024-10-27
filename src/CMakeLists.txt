@@ -7,6 +7,8 @@ set (AnalyzerSourceCodes
     main.cpp
 		Analyzer.h
 		Analyzer.cpp
+		Transform.h
+		Transform.cpp
 )
 
 # Build object library

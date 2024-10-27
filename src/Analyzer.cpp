@@ -2,11 +2,7 @@
 
 #include "llvm/IR/Instructions.h"
 #include <memory>
-
-using namespace llvm;
-/*
- * put all functions as possible callee
- */
+using namespace llvm; /* put all functions as possible callee */
 void IcallAnalyzer::constructIcallMap(
     std::vector<std::shared_ptr<Module>> modules) {
 
