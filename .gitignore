@@ -1,6 +1,6 @@
 /build 
 
-/llvm-project
+/llvm-project*
 
 /.cache
 

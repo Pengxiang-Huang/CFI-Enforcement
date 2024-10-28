@@ -3,10 +3,10 @@
 CUR_DIR=$(pwd)
 
 # Set the path custom-built LLVM binaries
-LLVM_PATH="$CUR_DIR/llvm-project/build/bin"
+LLVM_PATH="$CUR_DIR/llvm-project-14/build/bin"
 
 # export LLVM HOME path 
-export LLVM_HOME="$CUR_DIR/llvm-project"  
+export LLVM_HOME="$CUR_DIR/llvm-project-14"  
 
 # Add LLVM_PATH to the current shell
 export PATH="$LLVM_PATH:$PATH"
