@@ -4,6 +4,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/IRReader/IRReader.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/PrettyStackTrace.h"
@@ -75,6 +76,14 @@ int main(int argc, char **argv) {
     }
   }
 
+  // YT print the changed IR
+   std::error_code EC;
+   const char* FIlename="/home/yantingchi/Desktop/static_analysis/tools/CFI-Enforcement/dispatch_changed.ll";
+  raw_fd_ostream outFile(FIlename, EC, sys::fs::OF_None);
+   for(auto module:modules){
+    // MODIFY HERE
+    module->print(outFile, nullptr);
+   }
   delete analyzer;
   delete optimizer;
   return 0;

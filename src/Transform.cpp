@@ -6,6 +6,7 @@
 #include "llvm/IR/Module.h"
 
 using namespace llvm;
+int INSERT = 1;
 
 void Optmizer::applyFunctionTransformation(Function *f,
                                            IcallAnalyzer *analyzer) {
@@ -16,7 +17,49 @@ void Optmizer::applyFunctionTransformation(Function *f,
       if (auto *CI = llvm::dyn_cast<llvm::CallInst>(&i)) {
         if (CI->getCalledFunction() &&
             CI->getCalledFunction()->getName() == "llvm.type.test") {
+          if (INSERT) {
+            // YT: insert another type.test in specific position
+            //          CREATE FUNCTION TYPE:
+            LLVMContext &Context = f->getContext();
+            Type *VoidTy = Type::getVoidTy(Context);
+            Type *VoidPtrTy = Type::getInt8PtrTy(
+                Context); // `void*` is represented as `i8*` in LLVM
+            FunctionType *FuncType =
+                FunctionType::get(VoidTy, {VoidPtrTy}, false);
 
+
+            // Value *TypeToBeChecked = FuncType;
+            //  lvalue is auto *testedPtr = CI->getArgOperand(0);
+            auto *testedPtr = CI->getArgOperand(0);
+            // rvalue: seems to be metadata, we can generate  identifier like
+            // "_ZTSFvPvE" using mangler, here we just use a random string
+
+            // YT: set a random metadata to be used in llvm.type.test
+            std::vector<Metadata *> MetadataOperands;
+            std::string TypeStr;
+            raw_string_ostream RSO(TypeStr);
+            FuncType->print(RSO);
+            MetadataOperands.push_back(MDString::get(Context, TypeStr));
+            // Create the MD_type metadata node
+            MDNode *TypeMetadata = MDNode::get(Context, MetadataOperands);
+
+            // YT: insert llvm.type.test success!
+            //: GET INSERTION POINT: insert next to the current instruction
+            IRBuilder<> builder(CI);
+            builder.SetInsertPoint(&bb, ++builder.GetInsertPoint());
+            Function *typeTestIntrinsic =
+                Intrinsic::getDeclaration(f->getParent(), Intrinsic::type_test);
+            builder.CreateCall(
+                typeTestIntrinsic,
+                {testedPtr, MetadataAsValue::get(Context, TypeMetadata)});
+            INSERT = 0;
+          }
+
+          // branching instructions
+
+
+
+          // PX's code
           auto *testedPtr = CI->getArgOperand(0);
           errs() << "Found a testing function pointer: " << *testedPtr << "\n";
           if (auto *MetaOp = dyn_cast<MetadataAsValue>(CI->getOperand(1))) {
