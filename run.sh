@@ -16,4 +16,5 @@ ${CMAKE} -DCMAKE_BUILD_TYPE=Debug ../ ;
 make 
 cd ../
 
-
+# export the PATH
+export PATH="$(pwd)/build/src:$PATH"

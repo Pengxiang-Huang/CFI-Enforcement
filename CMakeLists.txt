@@ -1,6 +1,6 @@
 # project
 cmake_minimum_required(VERSION 3.1)
-project(cfi-enforcement)
+project(cfi-enforce)
 
 # language to use
 enable_language(C CXX)

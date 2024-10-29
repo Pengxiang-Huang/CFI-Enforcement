@@ -15,12 +15,12 @@ set (AnalyzerSourceCodes
 add_library(AnalyzerObj OBJECT ${AnalyzerSourceCodes})
 
 # Build executable (cfi-analyzer) from object files
-add_executable(cfi-analyzer $<TARGET_OBJECTS:AnalyzerObj>)
+add_executable(cfi-enforce $<TARGET_OBJECTS:AnalyzerObj>)
 
 # Link the required LLVM libraries to cfi-analyzer
 llvm_map_components_to_libnames(LLVM_LIBS support core irreader option)
 
-target_link_libraries(cfi-analyzer
+target_link_libraries(cfi-enforce
     ${LLVM_LIBS}
 		LLVMOption
 		LLVMSupport
