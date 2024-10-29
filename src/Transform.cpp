@@ -4,29 +4,38 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Module.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/raw_ostream.h"
 
 using namespace llvm;
 int INSERT = 1;
+int ITER=0;
+
 
 void Optmizer::applyFunctionTransformation(Function *f,
                                            IcallAnalyzer *analyzer) {
   errs() << "Performing Transformation  in Function: " << f->getName() << "\n";
-
+  LLVMContext &Context = f->getContext();
+  int numOfAddedTests = 0;
   for (auto &bb : *f) {
     for (auto &i : bb) {
       if (auto *CI = llvm::dyn_cast<llvm::CallInst>(&i)) {
         if (CI->getCalledFunction() &&
             CI->getCalledFunction()->getName() == "llvm.type.test") {
+
+          // Get the first and second branches of the branch instruction
+
           if (INSERT) {
             // YT: insert another type.test in specific position
             //          CREATE FUNCTION TYPE:
-            LLVMContext &Context = f->getContext();
+            // GET THE ORIGINAL
+
+
             Type *VoidTy = Type::getVoidTy(Context);
             Type *VoidPtrTy = Type::getInt8PtrTy(
                 Context); // `void*` is represented as `i8*` in LLVM
             FunctionType *FuncType =
                 FunctionType::get(VoidTy, {VoidPtrTy}, false);
-
 
             // Value *TypeToBeChecked = FuncType;
             //  lvalue is auto *testedPtr = CI->getArgOperand(0);
@@ -52,12 +61,57 @@ void Optmizer::applyFunctionTransformation(Function *f,
             builder.CreateCall(
                 typeTestIntrinsic,
                 {testedPtr, MetadataAsValue::get(Context, TypeMetadata)});
+
+
+
+
+
+            // GET A NEW BASIC BLOCK: success
+            numOfAddedTests++;
+            string BBName = "Test" + to_string(numOfAddedTests);
+            BasicBlock *Test2BB = BasicBlock::Create(Context, BBName, f);
+            IRBuilder<> BuilderBB(Test2BB);
+            // NEW BB, TYPETEST
+            auto *bbTypeTest = BuilderBB.CreateCall(
+                typeTestIntrinsic,
+                {testedPtr, MetadataAsValue::get(Context, TypeMetadata)});
+            bbTypeTest->setMetadata("testType", TypeMetadata);
+
+
+
+
+
+            // GET BRANCHING INSTRUCTION : next instruction
+            auto *nextInst = CI->getNextNode()->getNextNode();
+            llvm::errs() << "YT: Next instruction: " << *nextInst << "\n";
+
+            if (auto *branchInst = dyn_cast<BranchInst>(nextInst)) {
+              errs() << "Branching instruction content: " << *branchInst
+                     << "\n";
+              if (branchInst->isConditional()) { // SHOULD BE
+            // Modify both successors of the current conditional branching operation
+
+                BasicBlock *trueBranch = branchInst->getSuccessor(0);
+                BasicBlock *falseBranch = branchInst->getSuccessor(1);
+                branchInst->setSuccessor(0, falseBranch);
+                branchInst->setSuccessor(1, Test2BB);
+                errs() << "True branch: " << trueBranch->getName() << "\n";
+                errs() << "False branch: " << falseBranch->getName() << "\n";
+                BuilderBB.CreateCondBr(bbTypeTest, trueBranch, falseBranch);
+              } else {
+                BasicBlock *unconditionalBranch = branchInst->getSuccessor(0);
+                errs() << "Unconditional branch: "
+                       << unconditionalBranch->getName() << "\n";
+              }
+
+              // CHANGE BRANCH CONTENT
+            }
+
             INSERT = 0;
           }
 
           // branching instructions
-
-
+          // CREATE A BASIC BLOCK FOR ANOTHER TYPE TEST
 
           // PX's code
           auto *testedPtr = CI->getArgOperand(0);
