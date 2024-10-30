@@ -4,6 +4,8 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Module.h"
+#include <map>
+#include <vector>
 
 using namespace llvm;
 
@@ -11,67 +13,84 @@ void Optmizer::applyFunctionTransformation(Function *f,
                                            IcallAnalyzer *analyzer) {
   errs() << "Performing Transformation  in Function: " << f->getName() << "\n";
 
+  std::map<Instruction *, std::vector<Value *>> tomodify;
+
   for (auto &bb : *f) {
     for (auto &i : bb) {
-      if (auto *CI = llvm::dyn_cast<llvm::CallInst>(&i)) {
+      if (auto *CI = llvm::dyn_cast<CallInst>(&i)) {
+
+        /*
+         * Perform Transformation after the llvm.type.test
+         */
         if (CI->getCalledFunction() &&
             CI->getCalledFunction()->getName() == "llvm.type.test") {
 
+          errs() << "Found llvm testing pointer: " << *CI << "\n";
           auto *testedPtr = CI->getArgOperand(0);
-          errs() << "Found a testing function pointer: " << *testedPtr << "\n";
-          if (auto *MetaOp = dyn_cast<MetadataAsValue>(CI->getOperand(1))) {
-            if (auto *MD = dyn_cast<MDString>(MetaOp->getMetadata())) {
-              llvm::outs() << "Found metadata: " << MD->getString() << "\n";
-            }
-          }
 
-          /*
-           * output all callees
-           */
+          std::vector<Value *> toadd;
           auto funcset = analyzer->getPossibleCalleesInModule();
 
-          for (auto f : funcset) {
-            errs() << "output f name: " << f->getName() << "\n";
+          IRBuilder<> builder(CI);
+
+          /*
+           * create call and or instruction
+           */
+          for (auto func : funcset) {
+            errs() << "adding allowed f name: " << func->getName() << "\n";
             SmallVector<std::pair<unsigned, MDNode *>, 4> MDs;
-            (*f).getAllMetadata(MDs);
+            (*func).getAllMetadata(MDs);
             // Print all metadata
             for (const auto &MD : MDs) {
-              unsigned KindID = MD.first;
               MDNode *MDNode = MD.second;
-
-              errs() << "  Metadata kind ID: " << KindID << "\n";
 
               // Print each operand in the metadata node
               if (MDNode) {
                 for (unsigned i = 0; i < MDNode->getNumOperands(); ++i) {
+
                   Metadata *Op = MDNode->getOperand(i);
                   if (auto *Str = dyn_cast<MDString>(Op)) {
-                    errs() << "    Operand " << i << ": " << Str->getString()
-                           << "\n";
-                  } else if (auto *IntVal = dyn_cast<ConstantAsMetadata>(Op)) {
-                    // Handle integer values
-                    if (auto *ConstInt =
-                            dyn_cast<ConstantInt>(IntVal->getValue())) {
-                      errs() << "    Operand " << i << ": "
-                             << ConstInt->getZExtValue() << "\n";
+                    /*
+                     * check the string if it starts with _ZTS mangled name
+                     */
+                    auto str = Str->getString();
+                    if (str.startswith("_ZTS")) {
+                      /*
+                       * create the call instruction
+                       */
+                      Function *typeTestIntrinsic = Intrinsic::getDeclaration(
+                          f->getParent(), Intrinsic::type_test);
+                      auto typeTestCall = builder.CreateCall(
+                          typeTestIntrinsic,
+                          {testedPtr,
+                           MetadataAsValue::get(f->getContext(), Op)});
+                      errs() << *typeTestCall << "\n";
+                      toadd.push_back(typeTestCall);
                     }
-                  } else {
-                    errs() << "    Operand " << i
-                           << ": (non-string, non-integer type)\n";
                   }
                 }
               } else {
                 errs() << "  No metadata available.\n";
               }
             }
-            /*
-             * TODO
-             * tranformation
-             * create call and or instructions
-             */
           }
+
+          tomodify[CI] = toadd;
+          errs() << "-------------\n";
         }
       }
     }
   }
+
+  // for (auto &pair : tomodify){
+  // 	Instruction * insertPoint = pair.first;
+  // 	auto &toadd = pair.second;
+  // 	IRBuilder<> builder(insertPoint);
+  // 	builder.SetInsertPoint(insertPoint->getParent(),
+  // ++insertPoint->getIterator()); 	for (auto v : toadd){ 		errs() << *v << "\n";
+  // 		builder.Insert(v);
+  // 		builder.SetInsertPoint(insertPoint->getParent(),
+  // ++insertPoint->getIterator());
+  // 	}
+  // }
 }
