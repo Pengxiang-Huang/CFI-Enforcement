@@ -30,7 +30,7 @@ void function2b(struct B* a){
 
 void NestFunc0(fptr_t2 fptr, struct B* b){
     printf("NestFunc2, ID %f\n", b->id);
-    fptr2(b);   // can call any function in table1 and table2
+    fptr(b);   // can call any function in table1 and table2
 }
 void NestFunc1(fptr_t1 fptr, struct A* a){
     struct B b1={2.1};
@@ -51,7 +51,7 @@ int main(){
     fptr1(&a1); // mismatch here, can call function2a,function2b. Refer to table1
     fptr2(&b1); // mismatch here, can call function2a,function2b  Refer to table1
 
-    NestedFunc1(fptr_benign,&a1); // mismatch here, can call function2a,function2b
+    NestFunc1(fptr_benign,&a1); // mismatch here, can call function2a,function2b
     
 }
 
