@@ -3,8 +3,8 @@ SRC = test
 CC  = clang
 CXX = clang++
 
-CFLAGS = -O2 -emit-llvm
-
+CFLAGS = -g -flto=full -fvisibility=hidden -fsanitize=cfi-icall
+LDFLAGS = -flto=full -fuse-ld=lld	
 all: $(SRC).bc $(SRC).ll $(SRC).out 
 
 $(SRC).bc: $(SRC).c
@@ -14,7 +14,7 @@ $(SRC).ll: $(SRC).bc
 	llvm-dis $< -o $@
 
 $(SRC).out: $(SRC).bc 
-	$(CC) $(SRC).bc -o $(SRC).out
+	$(CC) $(SRC).bc $(LDFLAGS) -o $(SRC).out
 
 clean:
 	rm -f $(SRC).bc $(SRC).ll $(SRC).out 
