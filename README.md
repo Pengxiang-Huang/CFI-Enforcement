@@ -13,6 +13,7 @@ source enable
 ```
 
 and run to build the pass 
+need to change the project ROOT_PATH in config.h
 ```
 ./run.sh
 ```
