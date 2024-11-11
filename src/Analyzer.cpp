@@ -84,3 +84,4 @@ void IcallAnalyzer::dumpIcallMap() {
     errs() << "---------------------------\n";
   }
 }
+

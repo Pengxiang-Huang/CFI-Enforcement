@@ -9,7 +9,10 @@
 #include <llvm/IR/DebugInfo.h>
 #include <set>
 #include <unistd.h>
-
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <map>
 using namespace llvm;
 using namespace std;
 
@@ -53,4 +56,42 @@ using namespace std;
 
 extern cl::opt<unsigned> VerboseLevel;
 
+// struct CallsiteLocation {
+//     std::string filename;
+//     unsigned line;
+// };
+
+
+//debugging
+class CallsiteLocation{
+    public:
+        std::string filename;
+        unsigned line;
+        size_t hash;
+    CallsiteLocation(std::string filename, unsigned line): filename(filename), line(line) {
+        hash=std::hash<std::string>{}(filename) ^ std::hash<unsigned>{}(line);
+    }   
+    // Overload == operator
+    // must be used if you want to use this class as key in std::map
+    bool operator==(const CallsiteLocation& other) const {
+        
+        return hash == other.hash;  // Customize as per your class's logic
+    }
+
+    // Overload < operator (if needed for ordering or sorting)
+    bool operator<(const CallsiteLocation& other) const {
+        return hash < other.hash;  // Customize as per your class's logic
+    }
+    bool operator>(const CallsiteLocation& other) const {
+        
+        return hash>other.hash;  // Customize as per your class's logic
+    }
+
+};
+
+std::map<CallsiteLocation, vector<std::string>> readMismatchFile(std::string filename);
+
+std::map<CallsiteLocation, vector<std::string>> 
+getMismatchFunctionTypes(std::vector<std::shared_ptr<Module>> modules,
+                         std::map<CallsiteLocation, vector<std::string>> &mismatchMap);
 #endif

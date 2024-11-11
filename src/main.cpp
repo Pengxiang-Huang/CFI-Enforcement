@@ -16,7 +16,7 @@
 
 #include "Transform.h"
 #include "Utils.h"
-
+#include "Config.h" 
 using namespace llvm;
 
 // Command line parameters.
@@ -62,9 +62,10 @@ int main(int argc, char **argv) {
   analyzer->constructIcallMap(modules);
   analyzer->dumpIcallMap();
 
-  auto optimizer = new Optmizer();
+  auto optimizer = new Optimizer();
 
   for (auto &m : modules) {
+    
     for (auto &f : *m) {
       /*
        * check if function has body
@@ -72,14 +73,15 @@ int main(int argc, char **argv) {
       if (f.isDeclaration()) {
         continue;
       }
-      optimizer->applyFunctionTransformation(&f, analyzer);
+      // accept modules as input too, Does it follow Software Engineering standards?
+      optimizer->applyFunctionTransformation(&f, analyzer,modules);
     }
   }
 
   // YT print the changed IR
    std::error_code EC;
-   const char* FIlename="/home/yantingchi/Desktop/static_analysis/tools/CFI-Enforcement/dispatch_changed.ll";
-  raw_fd_ostream outFile(FIlename, EC, sys::fs::OF_None);
+   
+   raw_fd_ostream outFile(outputIRFName, EC, sys::fs::OF_None);
    for(auto module:modules){
     // MODIFY HERE
     module->print(outFile, nullptr);

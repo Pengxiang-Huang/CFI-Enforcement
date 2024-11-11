@@ -5,7 +5,7 @@
 #include <map>
 #include <memory>
 #include <set>
-
+#include <vector>
 using namespace llvm;
 
 
@@ -16,6 +16,7 @@ class IcallAnalyzer{
 		std::set<Function*> & getPossibleCallees(CallInst* inst);
 		std::set<Function*> & getPossibleCalleesInModule();
 		void dumpIcallMap();
+
 	private:
 		std::map<CallInst*, std::set<Function*> > ICallMap ;
 };
