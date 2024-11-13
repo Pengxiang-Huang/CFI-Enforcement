@@ -88,10 +88,8 @@ class CallsiteLocation{
     }
 
 };
+std::set<string> getTypes(set<Function*> &functions);
 
-std::map<CallsiteLocation, vector<std::string>> readMismatchFile(std::string filename);
 
-std::map<CallsiteLocation, vector<std::string>> 
-getMismatchFunctionTypes(std::vector<std::shared_ptr<Module>> modules,
-                         std::map<CallsiteLocation, vector<std::string>> &mismatchMap);
+
 #endif

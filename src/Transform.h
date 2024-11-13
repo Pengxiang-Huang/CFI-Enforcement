@@ -7,10 +7,10 @@ using namespace llvm;
 
 class Optimizer {
     private:
-        void transformTypeTests(LLVMContext &Context,std::vector<std::shared_ptr<Module>> modules);
-        std::map<CallInst*, vector<std::string>> callsiteFunctionTypeMap;
+        void transformTypeTests(LLVMContext &Context);
+        std::map<CallInst*, std::set<Function*>> callsiteFunctionTypeMap;
 	public:
 		Optimizer() = default;
-		void applyFunctionTransformation(Function *f, IcallAnalyzer * Analyzer,   std::vector<std::shared_ptr<Module>> modules);
+		void applyFunctionTransformation(Function *f, IcallAnalyzer * Analyzer);
         
 };

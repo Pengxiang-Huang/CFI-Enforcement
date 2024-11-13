@@ -4,6 +4,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/IRReader/IRReader.h"
+#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/Path.h"
@@ -12,11 +13,12 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/SystemUtils.h"
 #include "llvm/Support/ToolOutputFile.h"
+#include "llvm/Support/raw_ostream.h"
 #include <memory>
 
+#include "Config.h"
 #include "Transform.h"
 #include "Utils.h"
-#include "Config.h" 
 using namespace llvm;
 
 // Command line parameters.
@@ -30,6 +32,9 @@ cl::opt<unsigned>
 
 int main(int argc, char **argv) {
 
+  cl::opt<std::string> outputIRFName("o", cl::desc("Specify output filename"),
+                                     cl::value_desc("filename"));
+
   // Print a stack trace if we signal out.
   sys::PrintStackTraceOnErrorSignal(argv[0]);
   PrettyStackTraceProgram X(argc, argv);
@@ -37,6 +42,10 @@ int main(int argc, char **argv) {
   llvm_shutdown_obj Y; // Call llvm_shutdown() on exit.
 
   cl::ParseCommandLineOptions(argc, argv, "global analysis\n");
+  if (outputIRFName.empty()) {
+    errs() << "Error: output filename must be specified.\n";
+    return 1;
+  }
   SMDiagnostic Err;
 
   // Loading modules
@@ -65,7 +74,7 @@ int main(int argc, char **argv) {
   auto optimizer = new Optimizer();
 
   for (auto &m : modules) {
-    
+
     for (auto &f : *m) {
       /*
        * check if function has body
@@ -73,19 +82,20 @@ int main(int argc, char **argv) {
       if (f.isDeclaration()) {
         continue;
       }
-      // accept modules as input too, Does it follow Software Engineering standards?
-      optimizer->applyFunctionTransformation(&f, analyzer,modules);
+      // accept modules as input too, Does it follow Software Engineering
+      // standards?
+      optimizer->applyFunctionTransformation(&f, analyzer);
     }
   }
 
   // YT print the changed IR
-   std::error_code EC;
-   
-   raw_fd_ostream outFile(outputIRFName, EC, sys::fs::OF_None);
-   for(auto module:modules){
+  std::error_code EC;
+
+  raw_fd_ostream outFile(outputIRFName, EC, sys::fs::OF_None);
+  for (auto module : modules) {
     // MODIFY HERE
     module->print(outFile, nullptr);
-   }
+  }
   delete analyzer;
   delete optimizer;
   return 0;

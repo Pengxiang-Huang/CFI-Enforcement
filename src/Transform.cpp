@@ -37,7 +37,7 @@ CallsiteLocation getSourceLocation(Instruction *I) {
 
 
 // Apply transformation to llvm.type.test functions to let it accept more types
-void Optimizer::transformTypeTests(LLVMContext &Context,std::vector<std::shared_ptr<Module>> modules) {
+void Optimizer::transformTypeTests(LLVMContext &Context) {
 
   for (auto pair:callsiteFunctionTypeMap){
     CallInst *CI = pair.first;
@@ -46,7 +46,12 @@ void Optimizer::transformTypeTests(LLVMContext &Context,std::vector<std::shared_
       errs() << "Error: llvm.type.test does not have a branch instruction\n";
       continue;
     }
-    vector<string> functionTypes = pair.second;
+
+    // Transfer &Function to its types
+
+
+
+    set<string> functionTypes = getTypes(pair.second);
     // CREATE llvm.type.test
     IRBuilder<> builder(CI);
     builder.SetInsertPoint(CI->getParent(), ++builder.GetInsertPoint());
@@ -76,46 +81,21 @@ void Optimizer::transformTypeTests(LLVMContext &Context,std::vector<std::shared_
     // Change the final branch instruction
     brInstruction->setCondition(lastResult);
 
-//     Function *typeTestIntrinsic = Intrinsic::getDeclaration(
-//         CI->getParent()->getParent()->getParent(), Intrinsic::type_test);
-
-//     // Create Random TYpe metadata
-//     string TypeStr = getTypeMetadata();
-//     MDString *MDString = MDString::get(Context, TypeStr);
-    
-//     // CREATE  type test call
-//     Value *typeTestResult = builder.CreateCall(
-//         typeTestIntrinsic,
-//         {CI->getArgOperand(0), MetadataAsValue::get(Context, MDString)});
-//   }
-
-
-//   for (auto CI : testedCallSiteSet) {
-
-
-//     // Create an OR instruction , and change the result of the branch
-//     // instruction
-//     Value *orInstruction = builder.CreateOr(CI, typeTestResult);
-//     Instruction *nextInst = CI->getNextNode()->getNextNode()->getNextNode();
-//     if (BranchInst *br = dyn_cast<BranchInst>(nextInst)) {
-//       br->setCondition(orInstruction);
-//     }
   }
 }
 
 
 void Optimizer::applyFunctionTransformation(Function *f,
-                                            IcallAnalyzer *analyzer,   std::vector<std::shared_ptr<Module>> modules) {
+                                            IcallAnalyzer *analyzer) {
 
   errs() << "Performing Transformation  in Function: " << f->getName() << "\n";
   LLVMContext &Context = f->getContext();
+  std::map<CallInst*, std::set<Function*> > icallMismatchMap=analyzer->getICallMap(); 
 
 
   // read mismatch File
-  std::map<CallsiteLocation, vector<std::string>> mismatchMap =readMismatchFile(mismatchFileName);
-  std::map<CallsiteLocation, vector<std::string>> mismatchFunctionTypeMap = getMismatchFunctionTypes(modules, mismatchMap);
-
-
+//   std::map<CallsiteLocation, vector<std::string>> mismatchMap =readMismatchFile(mismatchFileName);
+//   std::map<CallsiteLocation, vector<std::string>> mismatchFunctionTypeMap = getMismatchFunctionTypes(modules, mismatchMap);
 
 
   for (auto &bb : *f) {
@@ -128,12 +108,14 @@ void Optimizer::applyFunctionTransformation(Function *f,
           // Just found llvm.type.test share the same source location with the
           // icall
           CallsiteLocation CIlocation = getSourceLocation(CI);
-          for (auto pair: mismatchFunctionTypeMap){
-              CallsiteLocation location = pair.first;
-              if (location.filename == CIlocation.filename && location.line == CIlocation.line){
+            for (auto pair: icallMismatchMap){
+                CallInst *icall = pair.first;
+                if (getSourceLocation(icall) == getSourceLocation(CI)){
                     callsiteFunctionTypeMap.insert({CI, pair.second});
-              }
-          }
+                }
+            }
+        
+
 
           // PX's code
           auto *testedPtrs = CI->getArgOperand(0);
@@ -196,7 +178,9 @@ void Optimizer::applyFunctionTransformation(Function *f,
   } 
 
   // Insertion of the or instructions
-  transformTypeTests(Context,modules);
+  // remove modules
+  // Using analyzer boosted stuffs
+  transformTypeTests(Context);
 }
 
 

@@ -20,5 +20,5 @@ need to change the project ROOT_PATH in config.h
 
 then use the executable to analyzing the modules 
 ```
-./build/src/cfi-analyzer .bc (files)
+./build/src/cfi-analyzer .bc (files) -o outputIRFile.ll
 ```
