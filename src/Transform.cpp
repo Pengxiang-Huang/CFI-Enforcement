@@ -39,8 +39,15 @@ CallsiteLocation getSourceLocation(Instruction *I) {
 // Apply transformation to llvm.type.test functions to let it accept more types
 void Optimizer::transformTypeTests(LLVMContext &Context) {
 
+
   for (auto pair:callsiteFunctionTypeMap){
     CallInst *CI = pair.first;
+    
+    // get all the metadata for the llvm.type.test
+    SmallVector<std::pair<unsigned, MDNode *>, 4> MDs;
+    CI->getAllMetadata(MDs);
+
+
     BranchInst *brInstruction = dyn_cast<BranchInst>(CI->getNextNode());
     if (!brInstruction) {
       errs() << "Error: llvm.type.test does not have a branch instruction\n";
@@ -48,9 +55,6 @@ void Optimizer::transformTypeTests(LLVMContext &Context) {
     }
 
     // Transfer &Function to its types
-
-
-
     set<string> functionTypes = getTypes(pair.second);
     // CREATE llvm.type.test
     IRBuilder<> builder(CI);
@@ -69,6 +73,14 @@ void Optimizer::transformTypeTests(LLVMContext &Context) {
         Value *typeTestResult = builder.CreateCall(
             typeTestIntrinsic,
             {CI->getArgOperand(0), MetadataAsValue::get(Context, MDString)});
+        CallInst *typeTestCall = dyn_cast<CallInst>(typeTestResult);
+
+
+
+        //Paste all the metadata to the new type test call
+        for (const auto &MD : MDs){
+            typeTestCall->setMetadata(MD.first, MD.second);
+        }
         typeTestResults.push_back(typeTestResult);
     }
 

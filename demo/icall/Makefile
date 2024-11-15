@@ -1,7 +1,6 @@
 SRC = dispatch
-CC = clang
-CFALG = -flto=full -fvisibility=hidden -fsanitize=cfi-icall
-
+CC = /home/yantingchi/Desktop/llvm/clang+llvm-15.0.0-x86_64-linux-gnu-rhel-8.4/bin/clang
+CFALG = -g -flto=full -fvisibility=hidden -fsanitize=cfi-icall 
 all: $(SRC).bc $(SRC).ll $(SRC).out
 
 without_cfi: CFALG =
