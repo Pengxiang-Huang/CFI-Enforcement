@@ -87,8 +87,8 @@ void Optmizer::applyFunctionTransformation(Function *f,
   // 	auto &toadd = pair.second;
   // 	IRBuilder<> builder(insertPoint);
   // 	builder.SetInsertPoint(insertPoint->getParent(),
-  // ++insertPoint->getIterator()); 	for (auto v : toadd){ 		errs() << *v << "\n";
-  // 		builder.Insert(v);
+  // ++insertPoint->getIterator()); 	for (auto v : toadd){ 		errs() << *v
+  // << "\n"; 		builder.Insert(v);
   // 		builder.SetInsertPoint(insertPoint->getParent(),
   // ++insertPoint->getIterator());
   // 	}
