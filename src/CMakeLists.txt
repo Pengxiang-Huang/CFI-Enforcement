@@ -18,7 +18,7 @@ add_library(AnalyzerObj OBJECT ${AnalyzerSourceCodes})
 add_executable(cfi-enforce $<TARGET_OBJECTS:AnalyzerObj>)
 
 # Link the required LLVM libraries to cfi-analyzer
-llvm_map_components_to_libnames(LLVM_LIBS support core irreader option)
+llvm_map_components_to_libnames(LLVM_LIBS support core irreader option bitwriter analysis asmparser)
 
 target_link_libraries(cfi-enforce
     ${LLVM_LIBS}

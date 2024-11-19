@@ -17,5 +17,5 @@ $(SRC).out: $(SRC).bc
 	$(CC) $< -flto=full -fuse-ld=lld -o $@ 
 
 clean:
-	rm -f $(SRC).out $(SRC).bc $(SRC).ll*
+	rm -f $(SRC).out *.bc *.ll
 

@@ -3,6 +3,11 @@
 #include "llvm/IR/Instructions.h"
 #include <memory>
 using namespace llvm; /* put all functions as possible callee */
+
+std::map<CallInst *, std::set<Function *>> IcallAnalyzer::getICallMap() {
+  return ICallMap;
+};
+
 void IcallAnalyzer::constructIcallMap(
     std::vector<std::shared_ptr<Module>> modules) {
 

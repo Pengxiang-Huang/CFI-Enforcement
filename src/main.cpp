@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
   analyzer->constructIcallMap(modules);
   analyzer->dumpIcallMap();
 
-  auto optimizer = new Optmizer();
+  auto optimizer = new Optimizer();
 
   for (auto &m : modules) {
     for (auto &f : *m) {
@@ -73,6 +73,16 @@ int main(int argc, char **argv) {
       }
       optimizer->applyFunctionTransformation(&f, analyzer);
     }
+  }
+
+  /*
+   * output to a new bitcode file
+   */
+  for (auto &m : modules) {
+    auto name = m->getName().str();
+    auto base = getBaseName(name);
+    auto outputName = base + "_optimized.bc";
+    writeBitcodeToFile(m.get(), outputName);
   }
 
   delete analyzer;

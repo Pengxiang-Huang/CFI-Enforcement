@@ -1,96 +1,273 @@
 #include "Transform.h"
+#include "Config.h"
+#include "Utils.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Mangler.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Module.h"
-#include <map>
-#include <vector>
-
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/raw_ostream.h"
+#include <stdlib.h>
+#include <string>
 using namespace llvm;
 
-void Optmizer::applyFunctionTransformation(Function *f,
-                                           IcallAnalyzer *analyzer) {
-  errs() << "Performing Transformation  in Function: " << f->getName() << "\n";
+// Apply transformation to llvm.type.test functions to let it accept more types
+void Optimizer::transformTypeTests(LLVMContext &Context) {
 
-  std::map<Instruction *, std::vector<Value *>> tomodify;
+  for (auto pair : callsiteFunctionTypeMap) {
+    CallInst *CI = pair.first;
+
+    // get all the metadata for the llvm.type.test
+    SmallVector<std::pair<unsigned, MDNode *>, 4> MDs;
+    CI->getAllMetadata(MDs);
+
+    BranchInst *brInstruction = dyn_cast<BranchInst>(CI->getNextNode());
+    if (!brInstruction) {
+      errs() << "Error: llvm.type.test does not have a branch instruction\n";
+      continue;
+    }
+
+    // Transfer &Function to its types
+    set<string> functionTypes = getTypes(pair.second);
+    // CREATE llvm.type.test
+    IRBuilder<> builder(CI);
+    builder.SetInsertPoint(CI->getParent(), ++builder.GetInsertPoint());
+
+    vector<Value *> typeTestResults;
+
+    for (string functionType : functionTypes) {
+      // Create Random TYpe metadata
+      MDString *MDString = MDString::get(Context, functionType);
+      // CREATE  type test call
+      Function *typeTestIntrinsic = Intrinsic::getDeclaration(
+          CI->getParent()->getParent()->getParent(), Intrinsic::type_test);
+      Value *typeTestResult = builder.CreateCall(
+          typeTestIntrinsic,
+          {CI->getArgOperand(0), MetadataAsValue::get(Context, MDString)});
+      CallInst *typeTestCall = dyn_cast<CallInst>(typeTestResult);
+
+      // Paste all the metadata to the new type test call
+      for (const auto &MD : MDs) {
+        typeTestCall->setMetadata(MD.first, MD.second);
+      }
+      typeTestResults.push_back(typeTestResult);
+    }
+
+    Value *lastResult = CI;
+    // Create an OR instruction , and change the result of the branch
+    for (Value *typeTestResult : typeTestResults) {
+      lastResult = builder.CreateOr(lastResult, typeTestResult);
+    }
+
+    // Change the final branch instruction
+    brInstruction->setCondition(lastResult);
+  }
+}
+
+void Optimizer::applyFunctionTransformation(Function *f,
+                                            IcallAnalyzer *analyzer) {
+
+  errs() << "Performing Transformation  in Function: " << f->getName() << "\n";
+  LLVMContext &Context = f->getContext();
+  std::map<CallInst *, std::set<Function *>> icallMismatchMap =
+      analyzer->getICallMap();
+
+  // read mismatch File
+  //   std::map<CallsiteLocation, vector<std::string>> mismatchMap
+  //   =readMismatchFile(mismatchFileName); std::map<CallsiteLocation,
+  //   vector<std::string>> mismatchFunctionTypeMap =
+  //   getMismatchFunctionTypes(modules, mismatchMap);
 
   for (auto &bb : *f) {
     for (auto &i : bb) {
-      if (auto *CI = llvm::dyn_cast<CallInst>(&i)) {
-
-        /*
-         * Perform Transformation after the llvm.type.test
-         */
+      if (auto *CI = llvm::dyn_cast<llvm::CallInst>(&i)) {
         if (CI->getCalledFunction() &&
             CI->getCalledFunction()->getName() == "llvm.type.test") {
 
-          errs() << "Found llvm testing pointer: " << *CI << "\n";
-          auto *testedPtr = CI->getArgOperand(0);
+          // GET the corresponding icall for the llvm.type.test
+          // Just found llvm.type.test share the same source location with the
+          // icall
+          CallsiteLocation CIlocation = getSourceLocation(CI);
+          for (auto pair : icallMismatchMap) {
+            CallInst *icall = pair.first;
+            if (getSourceLocation(icall) == getSourceLocation(CI)) {
+              callsiteFunctionTypeMap.insert({CI, pair.second});
+            }
+          }
 
-          std::vector<Value *> toadd;
-          auto funcset = analyzer->getPossibleCalleesInModule();
-
-          IRBuilder<> builder(CI);
+          // PX's code
+          auto *testedPtrs = CI->getArgOperand(0);
+          errs() << "Found a testing function pointer: " << *testedPtrs << "\n";
+          if (auto *MetaOp = dyn_cast<MetadataAsValue>(CI->getOperand(1))) {
+            if (auto *MD = dyn_cast<MDString>(MetaOp->getMetadata())) {
+              llvm::outs() << "Found metadata: " << MD->getString() << "\n";
+            }
+          }
 
           /*
-           * create call and or instruction
+           * output all callees
            */
-          for (auto func : funcset) {
-            errs() << "adding allowed f name: " << func->getName() << "\n";
+          auto funcset = analyzer->getPossibleCalleesInModule();
+
+          for (auto f : funcset) {
+            errs() << "output f name: " << f->getName() << "\n";
             SmallVector<std::pair<unsigned, MDNode *>, 4> MDs;
-            (*func).getAllMetadata(MDs);
+            (*f).getAllMetadata(MDs);
             // Print all metadata
             for (const auto &MD : MDs) {
+              unsigned KindID = MD.first;
               MDNode *MDNode = MD.second;
 
+              errs() << "  Metadata kind ID: " << KindID << "\n";
+
               // Print each operand in the metadata node
+              // What does operand in metadata node mean?
+              // FIXME HERE
               if (MDNode) {
                 for (unsigned i = 0; i < MDNode->getNumOperands(); ++i) {
 
                   Metadata *Op = MDNode->getOperand(i);
-                  if (auto *Str = dyn_cast<MDString>(Op)) {
-                    /*
-                     * check the string if it starts with _ZTS mangled name
-                     */
-                    auto str = Str->getString();
-                    if (str.startswith("_ZTS")) {
-                      /*
-                       * create the call instruction
-                       */
-                      Function *typeTestIntrinsic = Intrinsic::getDeclaration(
-                          f->getParent(), Intrinsic::type_test);
-                      auto typeTestCall = builder.CreateCall(
-                          typeTestIntrinsic,
-                          {testedPtr,
-                           MetadataAsValue::get(f->getContext(), Op)});
-                      errs() << *typeTestCall << "\n";
-                      toadd.push_back(typeTestCall);
+                  if (Op) // Op might be null in the program, don't know the
+                          // reason yet
+                    if (auto *Str = dyn_cast<MDString>(Op)) {
+                      errs() << "    Operand " << i << ": " << Str->getString()
+                             << "\n";
+                    } else if (auto *IntVal =
+                                   dyn_cast<ConstantAsMetadata>(Op)) {
+                      // Handle integer values
+                      if (auto *ConstInt =
+                              dyn_cast<ConstantInt>(IntVal->getValue())) {
+                        errs() << "    Operand " << i << ": "
+                               << ConstInt->getZExtValue() << "\n";
+                      }
+                    } else {
+                      errs() << "    Operand " << i
+                             << ": (non-string, non-integer type)\n";
                     }
-                  }
                 }
               } else {
                 errs() << "  No metadata available.\n";
               }
             }
           }
-
-          tomodify[CI] = toadd;
-          errs() << "-------------\n";
         }
       }
     }
   }
 
-  // for (auto &pair : tomodify){
-  // 	Instruction * insertPoint = pair.first;
-  // 	auto &toadd = pair.second;
-  // 	IRBuilder<> builder(insertPoint);
-  // 	builder.SetInsertPoint(insertPoint->getParent(),
-  // ++insertPoint->getIterator()); 	for (auto v : toadd){ 		errs() << *v
-  // << "\n"; 		builder.Insert(v);
-  // 		builder.SetInsertPoint(insertPoint->getParent(),
-  // ++insertPoint->getIterator());
-  // 	}
-  // }
+  // Insertion of the or instructions
+  // remove modules
+  // Using analyzer boosted stuffs
+  transformTypeTests(Context);
 }
+
+// -----------------  OLD CODE -----------------
+/*
+Find the icall that corresponds to llvm.type.test
+            if(auto br=dyn_cast<llvm::BranchInst>(CI->getNextNode())){
+              BasicBlock *trueBranch = br->getSuccessor(0);
+              for(auto &i : *trueBranch){
+                if(auto *CI = dyn_cast<llvm::CallInst>(&i)){
+                  errs() << "The CallInst is: " << *CI << "\n";
+                  if(getSourceLocation(CI)){
+                    testedCallSiteSet.insert(CI);
+                  }
+                  break;
+                    // Judge if the CI is what we want
+
+                }
+            }
+              }
+
+*/
+
+// PREVIOUS IDEA: ADDING  MULTIPLE llvm.type.test checks, modify Branching
+// instruction and adding new trap code blocks
+/*
+            // YT: insert another type.test in specific position
+            //          CREATE FUNCTION TYPE:
+            Type *VoidTy = Type::getVoidTy(Context);
+            Type *VoidPtrTy = Type::getInt8PtrTy(
+                Context); // `void*` is represented as `i8*` in LLVM
+            FunctionType *FuncType =
+                FunctionType::get(VoidTy, {VoidPtrTy}, false);
+
+            // Value *TypeToBeChecked = FuncType;
+            //  lvalue is auto *testedPtr = CI->getArgOperand(0);
+            auto *testedPtr = CI->getArgOperand(0);
+            // "_ZTSFvPvE" using mangler, here we just use a random string
+
+            // YT: set a random metadata to be used in llvm.type.test
+            // If you want to print a type, you have to do it in this way.
+
+            std::vector<Metadata *> MetadataOperands;
+            std::string TypeStr;
+            raw_string_ostream RSO(TypeStr);
+            FuncType->print(RSO);
+
+
+            MetadataOperands.push_back(MDString::get(Context, TypeStr));
+            // Create the MD_type metadata node
+            MDNode *TypeMetadata = MDNode::get(Context, MetadataOperands);
+
+
+            //: GET INSERTION POINT: insert next to the current instruction
+            IRBuilder<> builder(CI);
+            builder.SetInsertPoint(&bb, ++builder.GetInsertPoint());
+            Function *typeTestIntrinsic =
+                Intrinsic::getDeclaration(f->getParent(), Intrinsic::type_test);
+            builder.CreateCall(
+                typeTestIntrinsic,
+                {testedPtr, MetadataAsValue::get(Context, TypeMetadata)});
+
+
+
+
+
+            // // GET A NEW BASIC BLOCK: success
+            // numOfAddedTests++;
+            // string BBName = "Test" + to_string(numOfAddedTests);
+            // BasicBlock *Test2BB = BasicBlock::Create(Context, BBName, f);
+            // IRBuilder<> BuilderBB(Test2BB);
+            // // NEW BB, TYPETEST
+            // auto *bbTypeTest = BuilderBB.CreateCall(
+            //     typeTestIntrinsic,
+            //     {testedPtr, MetadataAsValue::get(Context, TypeMetadata)});
+            // bbTypeTest->setMetadata("testType", TypeMetadata);
+
+
+
+
+
+            // // GET BRANCHING INSTRUCTION : next instruction
+            // auto *nextInst = CI->getNextNode()->getNextNode();
+            // llvm::errs() << "YT: Next instruction: " << *nextInst << "\n";
+
+            // if (auto *branchInst = dyn_cast<BranchInst>(nextInst)) {
+            //   errs() << "Branching instruction content: " << *branchInst
+            //          << "\n";
+            //   if (branchInst->isConditional()) { // SHOULD BE
+            // // Modify both successors of the current conditional branching
+   operation
+
+            //     BasicBlock *trueBranch = branchInst->getSuccessor(0);
+            //     BasicBlock *falseBranch = branchInst->getSuccessor(1);
+            //     branchInst->setSuccessor(0, falseBranch);
+            //     branchInst->setSuccessor(1, Test2BB);
+            //     errs() << "True branch: " << trueBranch->getName() << "\n";
+            //     errs() << "False branch: " << falseBranch->getName() << "\n";
+            //     BuilderBB.CreateCondBr(bbTypeTest, trueBranch, falseBranch);
+            //   } else {
+            //     BasicBlock *unconditionalBranch =
+   branchInst->getSuccessor(0);
+            //     errs() << "Unconditional branch: "
+            //            << unconditionalBranch->getName() << "\n";
+            //   }
+
+            //   // CHANGE BRANCH CONTENT
+            //}
+    */

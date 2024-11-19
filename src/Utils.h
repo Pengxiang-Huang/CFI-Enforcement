@@ -50,6 +50,42 @@ using namespace std;
 #define KCYN  "\x1B[36m"  /* Cyan */
 #define KWHT  "\x1B[37m"  /* White */
 
+std::string getBaseName(const std::string &filename);
+
+void writeBitcodeToFile(const llvm::Module *Module,
+                        const std::string &Filename) ;
+
+//debugging
+class CallsiteLocation{
+    public:
+        std::string filename;
+        unsigned line;
+        size_t hash;
+    CallsiteLocation(std::string filename, unsigned line): filename(filename), line(line) {
+        hash=std::hash<std::string>{}(filename) ^ std::hash<unsigned>{}(line);
+    }   
+    // Overload == operator
+    // must be used if you want to use this class as key in std::map
+    bool operator==(const CallsiteLocation& other) const {
+        
+        return hash == other.hash;  // Customize as per your class's logic
+    }
+
+    // Overload < operator (if needed for ordering or sorting)
+    bool operator<(const CallsiteLocation& other) const {
+        return hash < other.hash;  // Customize as per your class's logic
+    }
+    bool operator>(const CallsiteLocation& other) const {
+        
+        return hash>other.hash;  // Customize as per your class's logic
+    }
+
+};
+std::set<string> getTypes(set<Function*> &functions);
+
+// @param Input: Instruction, read mismatch file that contains the source location, and to type
+// @return: true if the location match the mismatch file, false otherwise
+CallsiteLocation getSourceLocation(Instruction *I) ;
 
 extern cl::opt<unsigned> VerboseLevel;
 

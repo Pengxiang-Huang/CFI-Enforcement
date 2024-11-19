@@ -3,8 +3,11 @@
 
 using namespace llvm;
 
-class Optmizer {
+class Optimizer {
 	public:
-		Optmizer() = default;
+		Optimizer() = default;
 		void applyFunctionTransformation(Function *f, IcallAnalyzer * Analyzer);
+	private:
+			void transformTypeTests(LLVMContext &Context);
+			std::map<CallInst*, std::set<Function*>> callsiteFunctionTypeMap;
 };

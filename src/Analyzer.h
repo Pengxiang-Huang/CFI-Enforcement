@@ -16,6 +16,7 @@ class IcallAnalyzer{
 		std::set<Function*> & getPossibleCallees(CallInst* inst);
 		std::set<Function*> & getPossibleCalleesInModule();
 		void dumpIcallMap();
+		std::map<CallInst*, std::set<Function*> > getICallMap();
 	private:
 		std::map<CallInst*, std::set<Function*> > ICallMap ;
 };
